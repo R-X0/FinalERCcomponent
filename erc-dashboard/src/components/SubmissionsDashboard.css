@@ -805,3 +805,50 @@
       margin-top: 8px;
     }
   }
+
+/*download excel */
+.file-card-link {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    color: #3182ce;
+    margin-top: 8px;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  
+  .file-card-link:hover {
+    text-decoration: underline;
+    color: #2c5282;
+  }
+  
+  .file-card-link.download-button {
+    background-color: #ebf8ff;
+    border: 1px solid #bee3f8;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-weight: 500;
+    margin-top: 12px;
+    display: inline-flex;
+  }
+  
+  .file-card.excel .file-card-link.download-button {
+    background-color: #e6fffa;
+    border-color: #b2f5ea;
+    color: #2c7a7b;
+  }
+  
+  .file-card-link.download-button:hover {
+    background-color: #bee3f8;
+    text-decoration: none;
+  }
+  
+  .file-card.excel .file-card-link.download-button:hover {
+    background-color: #b2f5ea;
+  }
+  
+  .file-card-link-icon {
+    width: 14px;
+    height: 14px;
+    margin-left: 6px;
+  }

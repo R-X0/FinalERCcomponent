@@ -569,6 +569,15 @@ const SubmissionsDashboard = () => {
                                     <div className="file-card-content">
                                       <div className="file-card-title">Excel Report</div>
                                       <div className="file-card-path">{submission.excelPath}</div>
+                                      <a 
+                                        href={`/api/reports/${submission.submissionId}`}
+                                        className="file-card-link download-button"
+                                        download={`report_${submission.submissionId}.xlsx`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                      >
+                                        Download Report <ExternalLink className="file-card-link-icon" />
+                                      </a>
                                     </div>
                                   </div>
                                 ) : (
