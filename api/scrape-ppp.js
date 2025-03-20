@@ -3,40 +3,15 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const cheerio = require('cheerio');
-const mongoose = require('mongoose');
 const { OpenAI } = require('openai');
 
+// Import Submission model instead of redefining it
+const Submission = require('../models/Submission');
+
 // Initialize OpenAI client
-const openai = new OpenAI({
+const openAI = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
-
-// Create the submission schema
-const submissionSchema = new mongoose.Schema({
-  submissionId: String,
-  // ... other fields from your schema
-  pppData: {
-    businessName: String,
-    sourceLink: String,
-    scrapedAt: Date,
-    firstDraw: {
-      amount: Number,
-      date: Date,
-      forgiveness: Number
-    },
-    secondDraw: {
-      amount: Number,
-      date: Date,
-      forgiveness: Number
-    },
-    lender: String,
-    notes: String
-  }
-}, { 
-  strict: false // Allow any fields to be saved
-});
-
-const Submission = mongoose.model('Submission', submissionSchema);
 
 const router = express.Router();
 
@@ -66,7 +41,7 @@ async function scrapePPPData(url) {
 // Function to process scraped content with GPT
 async function processWithGPT(scrapedData, businessName) {
   try {
-    const response = await openai.chat.completions.create({
+    const response = await openAI.chat.completions.create({
       model: "gpt-4-turbo", // or your preferred model
       messages: [
         {

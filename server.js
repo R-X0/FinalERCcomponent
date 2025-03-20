@@ -6,6 +6,12 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
+// Import PPP scraper router
+const pppScraperRouter = require('./api/scrape-ppp');
+
+// Import Submission model
+const Submission = require('./models/Submission');
+
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -14,6 +20,9 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Use the PPP scraper router
+app.use(pppScraperRouter);
 
 // MongoDB connection
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -33,49 +42,6 @@ mongoose.connect(MONGODB_URI, {
   console.error('MongoDB connection error:', err);
   process.exit(1);
 });
-
-// Define submission schema
-const submissionSchema = new mongoose.Schema({
-  submissionId: String,
-  userId: String,
-  userEmail: String,
-  receivedAt: Date,
-  originalData: mongoose.Schema.Types.Mixed,
-  receivedFiles: [{
-    originalName: String,
-    savedPath: String,
-    size: Number,
-    mimetype: String
-  }],
-  report: {
-    generated: Boolean,
-    path: String,
-    qualificationData: {
-      qualifyingQuarters: [String],
-      quarterAnalysis: [{
-        quarter: String,
-        revenues: {
-          revenue2019: Number,
-          revenue2021: Number
-        },
-        change: Number,
-        percentDecrease: Number,
-        qualifies: Boolean
-      }]
-    }
-  },
-  status: String,
-  businessName: String,
-  ein: String,
-  location: String,
-  timePeriods: [String],
-  businessWebsite: String,
-  naicsCode: String,
-  processedQuarters: [String],
-  submissionData: mongoose.Schema.Types.Mixed
-}, { strict: false });
-
-const Submission = mongoose.model('Submission', submissionSchema);
 
 // API Routes
 
@@ -112,6 +78,7 @@ app.get('/api/submissions', async (req, res) => {
         receivedAt: doc.receivedAt,
         hasExcelFile: !!doc.report?.path,
         excelPath: doc.report?.path || null,
+        pppData: doc.pppData || null,
         mongoData: {
           _id: doc._id?.toString(),
           userEmail: doc.userEmail,
@@ -134,8 +101,8 @@ app.get('/api/submissions', async (req, res) => {
   }
 });
 
-// Serve Excel reports - NEW ENDPOINT
-app.get('/api/reports/:id', (req, res) => {
+// Serve Excel reports
+app.get('/api/reports/:id', async (req, res) => {
   try {
     const reportId = req.params.id;
     
@@ -149,8 +116,10 @@ app.get('/api/reports/:id', (req, res) => {
     let filePath = null;
     
     // Try to find the submission to get the exact file path
-    Submission.findOne({ submissionId: reportId }, (err, submission) => {
-      if (err || !submission) {
+    try {
+      const submission = await Submission.findOne({ submissionId: reportId });
+      
+      if (!submission) {
         // If we can't find the submission, try the default location
         filePath = path.join(__dirname, 'reports', `report_${reportId}.xlsx`);
       } else if (submission.report && submission.report.path) {
@@ -181,7 +150,10 @@ app.get('/api/reports/:id', (req, res) => {
         const fileStream = fs.createReadStream(filePath);
         fileStream.pipe(res);
       });
-    });
+    } catch (error) {
+      console.error('Error finding submission:', error);
+      res.status(500).send('Server error');
+    }
   } catch (error) {
     console.error('Error serving report:', error);
     res.status(500).send('Server error');
