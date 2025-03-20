@@ -263,3 +263,27 @@
       transform: rotate(360deg);
     }
   }
+
+
+  .ppp-edit-button:hover {
+    background-color: #e2e8f0;
+  }
+  
+  .ppp-reset-button {
+    padding: 8px 16px;
+    background-color: #fed7d7;
+    color: #9b2c2c;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    font-size: 12px;
+  }
+  
+  .ppp-reset-button:hover {
+    background-color: #feb2b2;
+  }

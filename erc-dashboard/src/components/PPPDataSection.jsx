@@ -71,12 +71,28 @@ const PPPDataSection = ({ submissionId, businessName, initialPppData, onSave }) 
                 <CheckCircle className="ppp-success-icon" size={18} />
                 <span>PPP data successfully retrieved</span>
               </div>
-              <button 
-                className="ppp-edit-button"
-                onClick={() => setIsAdding(true)}
-              >
-                Update Link
-              </button>
+              <div>
+                <button 
+                  className="ppp-edit-button"
+                  onClick={() => setIsAdding(true)}
+                  style={{ marginRight: '8px' }}
+                >
+                  Update Link
+                </button>
+                <button 
+                  className="ppp-reset-button"
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to reset the PPP data? This action cannot be undone.')) {
+                      setPppData(null);
+                      if (onSave) {
+                        onSave(null);
+                      }
+                    }
+                  }}
+                >
+                  Reset Data
+                </button>
+              </div>
             </div>
             
             <div className="ppp-details">
