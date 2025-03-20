@@ -1,12 +1,8 @@
-// api/scrape-ppp.js
+// puppeteer-scrape.js
 require('dotenv').config();
+const puppeteer = require('puppeteer');
 const express = require('express');
-const axios = require('axios');
-const cheerio = require('cheerio');
 const { OpenAI } = require('openai');
-
-// Import Submission model instead of redefining it
-const Submission = require('../models/Submission');
 
 // Initialize OpenAI client
 const openAI = new OpenAI({
@@ -15,34 +11,86 @@ const openAI = new OpenAI({
 
 const router = express.Router();
 
-// Helper function to scrape PPP data using Cheerio
+// Helper function to scrape PPP data using Puppeteer
 async function scrapePPPData(url) {
+  let browser = null;
+  
   try {
-    const response = await axios.get(url);
-    const html = response.data;
-    const $ = cheerio.load(html);
+    // Launch a headless browser (can be made visible for debugging)
+    browser = await puppeteer.launch({
+      headless: 'new', // Use 'false' for debugging
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--disable-gpu'
+      ]
+    });
     
-    // Extract the raw text content from the page
-    // This is a simplified approach - you'll need to customize based on the source
-    const pageContent = $('body').text().replace(/\s+/g, ' ').trim();
+    // Open a new page
+    const page = await browser.newPage();
     
-    // Return both the raw HTML and extracted text for GPT processing
+    // Set a realistic viewport
+    await page.setViewport({ width: 1366, height: 768 });
+    
+    // Set user agent to mimic a real browser
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
+    
+    // Visit the url
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
+    
+    // Check if page contains a CAPTCHA or security check
+    const pageTitle = await page.title();
+    const pageContent = await page.content();
+    
+    if (pageTitle.includes('Security Check') || pageContent.includes('security check')) {
+      console.log('Detected security check page. Attempting to wait for possible CAPTCHA timeout...');
+      
+      // Wait longer to see if the page resolves automatically (some security checks have timeouts)
+      await page.waitForTimeout(8000);
+      
+      // Check again if we're still on a security page
+      const newTitle = await page.title();
+      if (newTitle.includes('Security Check')) {
+        console.log('Still on security check page after waiting. May require manual intervention.');
+        throw new Error('Security verification required. The website is blocking automated access.');
+      }
+    }
+    
+    // Wait for the content to be available
+    await page.waitForSelector('body', { timeout: 10000 });
+    
+    // Extract the page content
+    const html = await page.content();
+    const text = await page.evaluate(() => document.body.innerText);
+    
+    // Close the browser
+    await browser.close();
+    browser = null;
+    
     return {
       html: html,
-      text: pageContent,
+      text: text,
       url: url
     };
   } catch (error) {
-    console.error('Error scraping PPP data:', error);
+    console.error('Error during puppeteer scraping:', error);
     throw new Error(`Failed to scrape data from ${url}: ${error.message}`);
+  } finally {
+    // Ensure browser is closed even if there's an error
+    if (browser) {
+      await browser.close();
+    }
   }
 }
 
 // Function to process scraped content with GPT
 async function processWithGPT(scrapedData, businessName) {
+  // Implementation remains the same as original
   try {
     const response = await openAI.chat.completions.create({
-      model: "gpt-4-turbo", // or your preferred model
+      model: "gpt-4-turbo",
       messages: [
         {
           role: "system",
@@ -88,19 +136,16 @@ async function processWithGPT(scrapedData, businessName) {
           ${scrapedData.text.substring(0, 9000)}`
         }
       ],
-      temperature: 0.1, // Lower temperature for more deterministic extraction
+      temperature: 0.1,
       max_tokens: 800,
     });
 
     const resultText = response.choices[0].message.content.trim();
     
-    // Parse the JSON response from GPT
     try {
-      // Sometimes GPT might include markdown code blocks, so we need to handle that
       const jsonText = resultText.replace(/```json|```/g, '').trim();
       const pppData = JSON.parse(jsonText);
       
-      // Add timestamp and source
       pppData.scrapedAt = new Date();
       pppData.sourceLink = scrapedData.url;
       
@@ -131,6 +176,7 @@ router.post('/api/scrape-ppp', async (req, res) => {
     const pppData = await processWithGPT(scrapedData, businessName);
     
     // 3. Update the submission in the database
+    const Submission = require('../models/Submission');
     await Submission.findOneAndUpdate(
       { submissionId: submissionId },
       { $set: { pppData: pppData } },
