@@ -1,0 +1,265 @@
+/* PPP Data Section Styles */
+.ppp-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 0;
+    text-align: center;
+  }
+  
+  .ppp-empty-state .empty-icon {
+    color: #a0aec0;
+    margin-bottom: 12px;
+  }
+  
+  .ppp-empty-state p {
+    color: #718096;
+    margin-bottom: 16px;
+  }
+  
+  .add-ppp-button, .ppp-edit-button {
+    padding: 8px 16px;
+    background-color: #4299e1;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  
+  .add-ppp-button:hover, .ppp-edit-button:hover {
+    background-color: #3182ce;
+  }
+  
+  .ppp-edit-button {
+    background-color: #edf2f7;
+    color: #4a5568;
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  
+  .ppp-edit-button:hover {
+    background-color: #e2e8f0;
+  }
+  
+  /* PPP Form Styles */
+  .ppp-form {
+    padding: 16px 0;
+  }
+  
+  .form-description {
+    color: #718096;
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+  
+  .form-group {
+    margin-bottom: 20px;
+  }
+  
+  .form-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #4a5568;
+    margin-bottom: 8px;
+  }
+  
+  .input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  
+  .input-icon {
+    position: absolute;
+    left: 12px;
+    color: #a0aec0;
+  }
+  
+  .form-input {
+    width: 100%;
+    padding: 10px 12px 10px 40px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+  
+  .form-input:focus {
+    outline: none;
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+  }
+  
+  .form-helper {
+    display: block;
+    font-size: 12px;
+    color: #718096;
+    margin-top: 6px;
+  }
+  
+  .error-message {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background-color: #fed7d7;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    color: #c53030;
+    font-size: 14px;
+  }
+  
+  .error-message svg {
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+  
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+  }
+  
+  .cancel-button {
+    padding: 8px 16px;
+    background-color: #fff;
+    color: #4a5568;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .cancel-button:hover {
+    background-color: #f7fafc;
+  }
+  
+  .submit-button {
+    padding: 8px 16px;
+    background-color: #4299e1;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .submit-button:hover {
+    background-color: #3182ce;
+  }
+  
+  .submit-button:disabled {
+    background-color: #a0aec0;
+    cursor: not-allowed;
+  }
+  
+  /* PPP Data Display Styles */
+  .ppp-data-container {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  .ppp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f7fafc;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .ppp-summary {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: #4a5568;
+  }
+  
+  .ppp-success-icon {
+    color: #48bb78;
+    margin-right: 8px;
+  }
+  
+  .ppp-details {
+    padding: 16px;
+  }
+  
+  .ppp-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .ppp-table th {
+    text-align: left;
+    font-weight: 500;
+    color: #718096;
+    padding: 8px 16px 8px 0;
+    width: 40%;
+    vertical-align: top;
+    font-size: 14px;
+  }
+  
+  .ppp-table td {
+    padding: 8px 0;
+    color: #2d3748;
+    font-size: 14px;
+  }
+  
+  .ppp-source {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background-color: #f7fafc;
+    border-top: 1px solid #e2e8f0;
+    font-size: 13px;
+  }
+  
+  .ppp-timestamp {
+    color: #718096;
+    font-size: 12px;
+  }
+  
+  /* Loading State */
+  .loading-ppp-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 0;
+    text-align: center;
+  }
+  
+  .loading-ppp-container svg {
+    color: #4299e1;
+    margin-bottom: 16px;
+  }
+  
+  .loading-ppp-container p {
+    color: #4a5568;
+    margin-bottom: 8px;
+  }
+  
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }

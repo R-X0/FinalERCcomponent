@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, ExternalLink, FileText, Archive, CheckCircle, XCircle, Filter, RefreshCw, Search } from 'lucide-react';
 import './SubmissionsDashboard.css';
+import PPPDataSection from './PPPDataSection';
+import './PPPDataSection.css';
 
 const SubmissionsDashboard = () => {
   const [submissions, setSubmissions] = useState([]);
@@ -15,6 +17,7 @@ const SubmissionsDashboard = () => {
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [statusOptions, setStatusOptions] = useState([]);
+  const [pppData, setPppData] = useState({});  // New state to store PPP data for submissions
 
   useEffect(() => {
     // Fetch submissions data from API
@@ -29,6 +32,15 @@ const SubmissionsDashboard = () => {
           // Extract unique status values for filter dropdown
           const uniqueStatuses = [...new Set(data.submissions.map(sub => sub.status).filter(Boolean))];
           setStatusOptions(uniqueStatuses);
+          
+          // Initialize PPP data from submissions if it exists
+          const initialPppData = {};
+          data.submissions.forEach(sub => {
+            if (sub.pppData) {
+              initialPppData[sub.submissionId] = sub.pppData;
+            }
+          });
+          setPppData(initialPppData);
         }
         
         setLoading(false);
@@ -65,6 +77,23 @@ const SubmissionsDashboard = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  // Handle PPP data update
+  const handlePppDataSave = (submissionId, pppDataValue) => {
+    setPppData(prev => ({
+      ...prev,
+      [submissionId]: pppDataValue
+    }));
+    
+    // Optionally update the submissions array too for completeness
+    setSubmissions(prev => 
+      prev.map(sub => 
+        sub.submissionId === submissionId 
+          ? { ...sub, pppData: pppDataValue } 
+          : sub
+      )
+    );
   };
 
   // Apply search and filters
@@ -404,6 +433,12 @@ const SubmissionsDashboard = () => {
                                 Excel
                               </span>
                             )}
+                            {pppData[submission.submissionId] && (
+                              <span className="file-badge ppp">
+                                <FileText className="file-icon" size={14} /> 
+                                PPP
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="table-cell date-cell">
@@ -527,6 +562,14 @@ const SubmissionsDashboard = () => {
                                   </div>
                                 )}
                               </div>
+                              
+                              {/* PPP Data Section - New Component */}
+                              <PPPDataSection
+                                submissionId={submission.submissionId}
+                                businessName={submission.businessName || 'Unnamed Business'}
+                                initialPppData={pppData[submission.submissionId]}
+                                onSave={(data) => handlePppDataSave(submission.submissionId, data)}
+                              />
                               
                               {/* Files & Links */}
                               <div className="details-card files-section">
