@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, ExternalLink, FileText, Archive, CheckCircle, XCircle, Filter, RefreshCw } from 'lucide-react';
+import { ChevronDown, ChevronUp, ExternalLink, FileText, Archive, CheckCircle, XCircle, Filter, RefreshCw, Search } from 'lucide-react';
+import './SubmissionsDashboard.css';
 
 const SubmissionsDashboard = () => {
   const [submissions, setSubmissions] = useState([]);
@@ -12,6 +13,7 @@ const SubmissionsDashboard = () => {
     hasZipFiles: '',
     isComplete: ''
   });
+  const [searchTerm, setSearchTerm] = useState('');
   const [statusOptions, setStatusOptions] = useState([]);
 
   useEffect(() => {
@@ -65,11 +67,28 @@ const SubmissionsDashboard = () => {
     }));
   };
 
-  // Apply filters
+  // Apply search and filters
   const filteredSubmissions = submissions.filter(submission => {
+    // Search term filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = 
+        (submission.submissionId && submission.submissionId.toLowerCase().includes(searchLower)) ||
+        (submission.businessName && submission.businessName.toLowerCase().includes(searchLower)) ||
+        (submission.status && submission.status.toLowerCase().includes(searchLower));
+      
+      if (!matchesSearch) return false;
+    }
+    
+    // Status filter
     if (filters.status && submission.status !== filters.status) return false;
+    
+    // ZIP files filter
     if (filters.hasZipFiles !== '' && submission.hasZipFiles.toString() !== filters.hasZipFiles) return false;
+    
+    // Completion filter
     if (filters.isComplete !== '' && submission.isComplete.toString() !== filters.isComplete) return false;
+    
     return true;
   });
 
@@ -137,197 +156,257 @@ const SubmissionsDashboard = () => {
   };
 
   return (
-    <div className="flex flex-col w-full max-w-screen-xl mx-auto p-4 bg-white rounded-lg shadow">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Completed Submissions Dashboard</h1>
-        <p className="text-gray-600">Manage and view all completed ERC submissions</p>
+    <div className="dashboard-container">
+      {/* Header */}
+      <div className="dashboard-header">
+        <h1 className="dashboard-title">ERC Submissions Dashboard</h1>
+        <p className="dashboard-description">Track and manage your Employee Retention Credit submissions</p>
       </div>
 
-      {/* Filter Controls */}
-      <div className="flex flex-wrap items-center gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
-        <div className="flex items-center">
-          <Filter className="w-5 h-5 mr-2 text-gray-500" />
-          <span className="font-medium">Filters:</span>
+      {/* Search and Filter Controls */}
+      <div className="filter-section">
+        <div className="filter-header">
+          <h2 className="filter-title">
+            <Filter className="filter-icon" size={18} />
+            Search & Filters
+          </h2>
+          
+          {/* Search input */}
+          <div className="search-container">
+            <Search className="search-icon" size={16} />
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search submissions..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
         
-        <div className="flex flex-wrap gap-3">
-          <select
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-            value={filters.status}
-            onChange={(e) => handleFilterChange('status', e.target.value)}
-          >
-            <option value="">All Statuses</option>
-            {statusOptions.map(status => (
-              <option key={status} value={status}>{status}</option>
-            ))}
-          </select>
+        <div className="filters-grid">
+          <div className="filter-group">
+            <label className="filter-label">Status</label>
+            <select
+              className="filter-select"
+              value={filters.status}
+              onChange={(e) => handleFilterChange('status', e.target.value)}
+            >
+              <option value="">All Statuses</option>
+              {statusOptions.map(status => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+          </div>
           
-          <select
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-            value={filters.hasZipFiles}
-            onChange={(e) => handleFilterChange('hasZipFiles', e.target.value)}
-          >
-            <option value="">All ZIP Status</option>
-            <option value="true">Has ZIP Files</option>
-            <option value="false">Missing ZIP Files</option>
-          </select>
+          <div className="filter-group">
+            <label className="filter-label">ZIP Files</label>
+            <select
+              className="filter-select"
+              value={filters.hasZipFiles}
+              onChange={(e) => handleFilterChange('hasZipFiles', e.target.value)}
+            >
+              <option value="">All ZIP Status</option>
+              <option value="true">Has ZIP Files</option>
+              <option value="false">Missing ZIP Files</option>
+            </select>
+          </div>
           
-          <select
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-            value={filters.isComplete}
-            onChange={(e) => handleFilterChange('isComplete', e.target.value)}
-          >
-            <option value="">All Completion Status</option>
-            <option value="true">Complete</option>
-            <option value="false">Incomplete</option>
-          </select>
+          <div className="filter-group">
+            <label className="filter-label">Completion</label>
+            <select
+              className="filter-select"
+              value={filters.isComplete}
+              onChange={(e) => handleFilterChange('isComplete', e.target.value)}
+            >
+              <option value="">All Completion Status</option>
+              <option value="true">Complete</option>
+              <option value="false">Incomplete</option>
+            </select>
+          </div>
           
-          <button 
-            onClick={() => setFilters({ status: '', hasZipFiles: '', isComplete: '' })}
-            className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-sm flex items-center"
-          >
-            <RefreshCw className="w-4 h-4 mr-1" /> Reset
-          </button>
+          <div className="filter-group" style={{ justifyContent: 'flex-end' }}>
+            <button 
+              className="reset-button"
+              onClick={() => {
+                setFilters({ status: '', hasZipFiles: '', isComplete: '' });
+                setSearchTerm('');
+              }}
+            >
+              <RefreshCw className="reset-button-icon" size={14} /> Reset All Filters
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Loading Indicator */}
       {loading ? (
-        <div className="flex items-center justify-center p-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          <span className="ml-3 text-lg text-gray-700">Loading submissions...</span>
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <div className="loading-text">Loading submissions...</div>
+          <div className="loading-subtext">Please wait while we fetch your data</div>
         </div>
       ) : (
         <>
-          {/* Results Stats */}
-          <div className="mb-4 text-gray-600">
-            Showing {sortedSubmissions.length} of {submissions.length} submissions
+          {/* Results Summary */}
+          <div className="results-summary">
+            <div className="results-count">
+              Showing <span className="results-count-highlight">{sortedSubmissions.length}</span> of <span className="results-count-highlight">{submissions.length}</span> submissions
+            </div>
+            
+            <div className="last-updated">
+              Last updated: {new Date().toLocaleDateString()}
+            </div>
           </div>
           
+          {/* Empty State */}
+          {sortedSubmissions.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-icon-container">
+                <Filter className="empty-icon" />
+              </div>
+              <h3 className="empty-title">No submissions found</h3>
+              <p className="empty-description">
+                No submissions match your current filters. Try changing your search terms or clearing filters.
+              </p>
+              <button 
+                className="clear-filters-button"
+                onClick={() => {
+                  setFilters({ status: '', hasZipFiles: '', isComplete: '' });
+                  setSearchTerm('');
+                }}
+              >
+                <RefreshCw size={14} style={{ marginRight: '8px' }} /> Clear All Filters
+              </button>
+            </div>
+          )}
+          
           {/* Table */}
-          <div className="overflow-x-auto rounded-lg border border-gray-200">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10"></th>
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                    onClick={() => handleSort('submissionId')}
-                  >
-                    ID
-                    {sortField === 'submissionId' && (
-                      <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                    )}
-                  </th>
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                    onClick={() => handleSort('businessName')}
-                  >
-                    Business
-                    {sortField === 'businessName' && (
-                      <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                    )}
-                  </th>
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                    onClick={() => handleSort('status')}
-                  >
-                    Status
-                    {sortField === 'status' && (
-                      <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                    )}
-                  </th>
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                    onClick={() => handleSort('quarterCount')}
-                  >
-                    Quarters
-                    {sortField === 'quarterCount' && (
-                      <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                    )}
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Files
-                  </th>
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                    onClick={() => handleSort('receivedAt')}
-                  >
-                    Date Received
-                    {sortField === 'receivedAt' && (
-                      <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                    )}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {sortedSubmissions.length === 0 ? (
+          {sortedSubmissions.length > 0 && (
+            <div className="table-container">
+              <table className="submissions-table">
+                <thead className="table-header">
                   <tr>
-                    <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
-                      No submissions found matching the current filters
-                    </td>
+                    <th style={{ width: '50px' }}></th>
+                    <th 
+                      className="sortable-header"
+                      onClick={() => handleSort('submissionId')}
+                    >
+                      ID
+                      {sortField === 'submissionId' && (
+                        <span className="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </th>
+                    <th 
+                      className="sortable-header"
+                      onClick={() => handleSort('businessName')}
+                    >
+                      Business
+                      {sortField === 'businessName' && (
+                        <span className="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </th>
+                    <th 
+                      className="sortable-header"
+                      onClick={() => handleSort('status')}
+                    >
+                      Status
+                      {sortField === 'status' && (
+                        <span className="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </th>
+                    <th 
+                      className="sortable-header"
+                      onClick={() => handleSort('quarterCount')}
+                    >
+                      Quarters
+                      {sortField === 'quarterCount' && (
+                        <span className="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </th>
+                    <th>Files</th>
+                    <th 
+                      className="sortable-header"
+                      onClick={() => handleSort('receivedAt')}
+                    >
+                      Date Received
+                      {sortField === 'receivedAt' && (
+                        <span className="sort-indicator">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </th>
                   </tr>
-                ) : (
-                  sortedSubmissions.map((submission) => (
+                </thead>
+                <tbody>
+                  {sortedSubmissions.map((submission) => (
                     <React.Fragment key={submission.submissionId}>
-                      <tr className={`${expandedRows[submission.submissionId] ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                        <td className="px-4 py-4">
+                      <tr className={`table-row ${expandedRows[submission.submissionId] ? 'expanded' : ''}`}>
+                        <td className="table-cell" style={{ textAlign: 'center' }}>
                           <button
+                            className={`expand-button ${expandedRows[submission.submissionId] ? 'expanded' : ''}`}
                             onClick={() => toggleRowExpand(submission.submissionId)}
-                            className="text-gray-600 hover:text-blue-600"
+                            aria-label={expandedRows[submission.submissionId] ? "Collapse details" : "Expand details"}
                           >
                             {expandedRows[submission.submissionId] ? (
-                              <ChevronUp className="w-5 h-5" />
+                              <ChevronUp size={18} />
                             ) : (
-                              <ChevronDown className="w-5 h-5" />
+                              <ChevronDown size={18} />
                             )}
                           </button>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="table-cell id-cell">
                           {submission.submissionId}
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-800">
+                        <td className="table-cell business-cell">
                           {submission.businessName || 'Unnamed Business'}
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium 
-                            ${submission.status === 'PDF done' || submission.status === 'Completed' 
-                              ? 'bg-green-100 text-green-800' 
+                        <td className="table-cell">
+                          <span className={`status-badge ${
+                            submission.status === 'PDF done' || submission.status === 'Completed' 
+                              ? 'completed' 
                               : submission.status === 'In Progress' 
-                                ? 'bg-yellow-100 text-yellow-800' 
-                                : 'bg-gray-100 text-gray-800'}`}>
+                                ? 'in-progress' 
+                                : 'default'
+                          }`}>
                             {submission.status || 'Unknown'}
                           </span>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex items-center">
-                            <span className="mr-2">
+                        <td className="table-cell">
+                          <div className="progress-container">
+                            <div className="progress-bar-container">
+                              <div 
+                                className={`progress-bar ${submission.isComplete ? 'complete' : 'incomplete'}`}
+                                style={{ 
+                                  width: `${((submission.processedQuarters?.length || 0) / (submission.quarterCount || 1)) * 100}%` 
+                                }}
+                              ></div>
+                            </div>
+                            <span className="progress-text">
                               {submission.processedQuarters?.length || 0}/{submission.quarterCount || 0}
                             </span>
                             {submission.isComplete ? (
-                              <CheckCircle className="w-4 h-4 text-green-500" />
+                              <CheckCircle className="check-icon" size={16} />
                             ) : (
-                              <XCircle className="w-4 h-4 text-red-500" />
+                              <XCircle className="x-icon" size={16} />
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex items-center space-x-2">
+                        <td className="table-cell">
+                          <div>
                             {submission.hasZipFiles && (
-                              <span className="flex items-center text-blue-600">
-                                <Archive className="w-4 h-4 mr-1" /> 
-                                <span>ZIP</span>
+                              <span className="file-badge zip">
+                                <Archive className="file-icon" size={14} /> 
+                                ZIP
                               </span>
                             )}
                             {submission.hasExcelFile && (
-                              <span className="flex items-center text-green-600">
-                                <FileText className="w-4 h-4 mr-1" /> 
-                                <span>Excel</span>
+                              <span className="file-badge excel">
+                                <FileText className="file-icon" size={14} /> 
+                                Excel
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="table-cell date-cell">
                           {formatDate(submission.receivedAt)}
                         </td>
                       </tr>
@@ -335,67 +414,105 @@ const SubmissionsDashboard = () => {
                       {/* Expanded Detail View */}
                       {expandedRows[submission.submissionId] && (
                         <tr>
-                          <td colSpan="7" className="px-4 py-4 bg-gray-50 border-b">
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          <td colSpan="7" className="expanded-content">
+                            <div className="details-grid">
                               {/* Basic Information */}
-                              <div className="bg-white p-4 rounded-lg shadow-sm">
-                                <h3 className="text-lg font-medium mb-4 text-gray-800 border-b pb-2">Basic Information</h3>
-                                <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
-                                  <dt className="text-sm font-medium text-gray-500">Status:</dt>
-                                  <dd className="text-sm text-gray-900">{submission.status || 'Unknown'}</dd>
+                              <div className="details-card">
+                                <h3 className="details-card-title">Basic Information</h3>
+                                <dl>
+                                  <dt>Status:</dt>
+                                  <dd>
+                                    <span className={`status-badge ${
+                                      submission.status === 'PDF done' || submission.status === 'Completed' 
+                                        ? 'completed' 
+                                        : submission.status === 'In Progress' 
+                                          ? 'in-progress' 
+                                          : 'default'
+                                    }`}>
+                                      {submission.status || 'Unknown'}
+                                    </span>
+                                  </dd>
                                   
-                                  <dt className="text-sm font-medium text-gray-500">Business Name:</dt>
-                                  <dd className="text-sm text-gray-900">{submission.businessName || 'Unnamed'}</dd>
+                                  <dt>Business Name:</dt>
+                                  <dd>{submission.businessName || 'Unnamed'}</dd>
                                   
-                                  <dt className="text-sm font-medium text-gray-500">Email:</dt>
-                                  <dd className="text-sm text-gray-900">{submission.mongoData?.userEmail || 'Not provided'}</dd>
-                                  
-                                  <dt className="text-sm font-medium text-gray-500">Received:</dt>
-                                  <dd className="text-sm text-gray-900">{formatDate(submission.receivedAt)}</dd>
-                                  
-                                  <dt className="text-sm font-medium text-gray-500">Completion:</dt>
-                                  <dd className="text-sm text-gray-900 flex items-center">
-                                    {submission.processedQuarters?.length || 0}/{submission.quarterCount || 0} Quarters
-                                    {submission.isComplete ? (
-                                      <CheckCircle className="w-4 h-4 text-green-500 ml-2" />
+                                  <dt>Email:</dt>
+                                  <dd>
+                                    {submission.mongoData?.userEmail ? (
+                                      <a href={`mailto:${submission.mongoData.userEmail}`} className="file-card-link">
+                                        {submission.mongoData.userEmail}
+                                      </a>
                                     ) : (
-                                      <XCircle className="w-4 h-4 text-red-500 ml-2" />
+                                      'Not provided'
                                     )}
                                   </dd>
                                   
-                                  <dt className="text-sm font-medium text-gray-500">MongoDB ID:</dt>
-                                  <dd className="text-sm text-gray-900 font-mono text-xs">{submission.mongoData?._id || 'N/A'}</dd>
+                                  <dt>Received:</dt>
+                                  <dd>{formatDate(submission.receivedAt)}</dd>
+                                  
+                                  <dt>Completion:</dt>
+                                  <dd className="progress-container">
+                                    <div className="progress-bar-container">
+                                      <div 
+                                        className={`progress-bar ${submission.isComplete ? 'complete' : 'incomplete'}`}
+                                        style={{ 
+                                          width: `${((submission.processedQuarters?.length || 0) / (submission.quarterCount || 1)) * 100}%` 
+                                        }}
+                                      ></div>
+                                    </div>
+                                    <span className="progress-text">
+                                      {submission.processedQuarters?.length || 0}/{submission.quarterCount || 0}
+                                    </span>
+                                    {submission.isComplete ? (
+                                      <CheckCircle className="check-icon" size={16} />
+                                    ) : (
+                                      <XCircle className="x-icon" size={16} />
+                                    )}
+                                  </dd>
+                                  
+                                  <dt>MongoDB ID:</dt>
+                                  <dd className="id-cell" style={{ fontSize: '12px' }}>
+                                    {submission.mongoData?._id || 'N/A'}
+                                  </dd>
                                 </dl>
                               </div>
                               
                               {/* Quarter Analysis */}
-                              <div className="bg-white p-4 rounded-lg shadow-sm">
-                                <h3 className="text-lg font-medium mb-4 text-gray-800 border-b pb-2">Quarter Analysis</h3>
+                              <div className="details-card">
+                                <h3 className="details-card-title">Quarter Analysis</h3>
                                 
                                 {submission.mongoData?.report?.qualificationData?.quarterAnalysis?.length > 0 ? (
-                                  <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200 text-sm">
+                                  <div style={{ overflowX: 'auto' }}>
+                                    <table className="quarter-analysis-table">
                                       <thead>
                                         <tr>
-                                          <th className="px-3 py-2 text-left font-medium text-gray-500">Quarter</th>
-                                          <th className="px-3 py-2 text-right font-medium text-gray-500">2019 Revenue</th>
-                                          <th className="px-3 py-2 text-right font-medium text-gray-500">2021 Revenue</th>
-                                          <th className="px-3 py-2 text-right font-medium text-gray-500">Decrease</th>
-                                          <th className="px-3 py-2 text-center font-medium text-gray-500">Qualifies</th>
+                                          <th>Quarter</th>
+                                          <th className="right-align">2019 Revenue</th>
+                                          <th className="right-align">2021 Revenue</th>
+                                          <th className="right-align">Decrease</th>
+                                          <th className="center-align">Qualifies</th>
                                         </tr>
                                       </thead>
-                                      <tbody className="divide-y divide-gray-100">
+                                      <tbody>
                                         {submission.mongoData.report.qualificationData.quarterAnalysis.map((quarter, index) => (
-                                          <tr key={index} className={quarter.qualifies ? 'bg-green-50' : ''}>
-                                            <td className="px-3 py-2">{quarter.quarter}</td>
-                                            <td className="px-3 py-2 text-right">{formatCurrency(quarter.revenues?.revenue2019)}</td>
-                                            <td className="px-3 py-2 text-right">{formatCurrency(quarter.revenues?.revenue2021)}</td>
-                                            <td className="px-3 py-2 text-right">{formatPercentage(quarter.percentDecrease)}</td>
-                                            <td className="px-3 py-2 text-center">
+                                          <tr key={index} className={quarter.qualifies ? 'qualified' : ''}>
+                                            <td className="quarter-name">{quarter.quarter}</td>
+                                            <td className="right-align">{formatCurrency(quarter.revenues?.revenue2019)}</td>
+                                            <td className="right-align">{formatCurrency(quarter.revenues?.revenue2021)}</td>
+                                            <td className="right-align">
+                                              <span className={`decrease-value ${quarter.percentDecrease > 50 ? 'high' : ''}`}>
+                                                {formatPercentage(quarter.percentDecrease)}
+                                              </span>
+                                            </td>
+                                            <td className="center-align">
                                               {quarter.qualifies ? (
-                                                <CheckCircle className="w-5 h-5 text-green-500 inline" />
+                                                <span className="qualification-indicator qualified">
+                                                  <CheckCircle className="qualification-icon" />
+                                                </span>
                                               ) : (
-                                                <XCircle className="w-5 h-5 text-red-500 inline" />
+                                                <span className="qualification-indicator not-qualified">
+                                                  <XCircle className="qualification-icon" />
+                                                </span>
                                               )}
                                             </td>
                                           </tr>
@@ -404,121 +521,145 @@ const SubmissionsDashboard = () => {
                                     </table>
                                   </div>
                                 ) : (
-                                  <p className="text-gray-500 italic">No quarter analysis data available</p>
+                                  <div className="no-data-message">
+                                    <FileText className="no-data-icon" size={24} />
+                                    <p className="no-data-text">No quarter analysis data available</p>
+                                  </div>
                                 )}
                               </div>
                               
                               {/* Files & Links */}
-                              <div className="bg-white p-4 rounded-lg shadow-sm">
-                                <h3 className="text-lg font-medium mb-4 text-gray-800 border-b pb-2">Files & Links</h3>
+                              <div className="details-card files-section">
+                                <h3 className="details-card-title">Files & Links</h3>
                                 
-                                <h4 className="font-medium text-sm text-gray-700 mt-3 mb-2">ZIP Files:</h4>
+                                <h4>ZIP Files:</h4>
                                 {submission.hasZipFiles ? (
-                                  <ul className="space-y-2">
+                                  <div className="files-grid">
                                     {Object.entries(submission.zipLinks || {}).map(([quarter, link]) => (
-                                      <li key={quarter} className="flex items-center">
-                                        <Archive className="w-4 h-4 text-blue-500 mr-2" />
-                                        <span className="text-sm text-gray-700 mr-2">{quarter}:</span>
-                                        <a 
-                                          href={link} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
-                                        >
-                                          View File <ExternalLink className="w-3 h-3 ml-1" />
-                                        </a>
-                                      </li>
+                                      <div key={quarter} className="file-card">
+                                        <div className="file-card-icon-container">
+                                          <Archive className="file-card-icon" size={18} />
+                                        </div>
+                                        <div className="file-card-content">
+                                          <div className="file-card-title">{quarter}</div>
+                                          <a 
+                                            href={link} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="file-card-link"
+                                          >
+                                            View File <ExternalLink className="file-card-link-icon" />
+                                          </a>
+                                        </div>
+                                      </div>
                                     ))}
-                                  </ul>
-                                ) : (
-                                  <p className="text-sm text-gray-500 italic">No ZIP files available</p>
-                                )}
-                                
-                                <h4 className="font-medium text-sm text-gray-700 mt-4 mb-2">Excel Report:</h4>
-                                {submission.hasExcelFile ? (
-                                  <div className="flex items-center">
-                                    <FileText className="w-4 h-4 text-green-500 mr-2" />
-                                    <span className="text-sm text-gray-700">{submission.excelPath}</span>
                                   </div>
                                 ) : (
-                                  <p className="text-sm text-gray-500 italic">No Excel file available</p>
+                                  <div className="no-files-message">
+                                    No ZIP files available
+                                  </div>
+                                )}
+                                
+                                <h4>Excel Report:</h4>
+                                {submission.hasExcelFile ? (
+                                  <div className="file-card excel">
+                                    <div className="file-card-icon-container">
+                                      <FileText className="file-card-icon" size={18} />
+                                    </div>
+                                    <div className="file-card-content">
+                                      <div className="file-card-title">Excel Report</div>
+                                      <div className="file-card-path">{submission.excelPath}</div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="no-files-message">
+                                    No Excel file available
+                                  </div>
                                 )}
                               </div>
                               
                               {/* Qualifying Information */}
-                              <div className="bg-white p-4 rounded-lg shadow-sm">
-                                <h3 className="text-lg font-medium mb-4 text-gray-800 border-b pb-2">Qualifying Information</h3>
+                              <div className="details-card quarters-section">
+                                <h3 className="details-card-title">Qualifying Information</h3>
                                 
-                                <div className="space-y-4">
+                                <div style={{ marginBottom: '24px' }}>
+                                  <h4>Qualifying Quarters:</h4>
+                                  {submission.mongoData?.report?.qualificationData?.qualifyingQuarters?.length > 0 ? (
+                                    <div className="quarters-badges">
+                                      {submission.mongoData.report.qualificationData.qualifyingQuarters.map(quarter => (
+                                        <span 
+                                          key={quarter} 
+                                          className="quarter-badge qualifying"
+                                        >
+                                          {quarter}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="no-files-message">
+                                      No qualifying quarters found
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <div style={{ marginBottom: '24px' }}>
+                                  <h4>Processed Quarters:</h4>
+                                  {submission.processedQuarters?.length > 0 ? (
+                                    <div className="quarters-badges">
+                                      {submission.processedQuarters.map(quarter => (
+                                        <span 
+                                          key={quarter} 
+                                          className="quarter-badge processed"
+                                        >
+                                          {quarter}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="no-files-message">
+                                      No processed quarters found
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {submission.mongoData?.originalData?.formData?.qualifyingQuestions && (
                                   <div>
-                                    <h4 className="font-medium text-sm text-gray-700 mb-2">Qualifying Quarters:</h4>
-                                    {submission.mongoData?.report?.qualificationData?.qualifyingQuarters?.length > 0 ? (
-                                      <div className="flex flex-wrap gap-2">
-                                        {submission.mongoData.report.qualificationData.qualifyingQuarters.map(quarter => (
-                                          <span 
-                                            key={quarter} 
-                                            className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"
-                                          >
-                                            {quarter}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <p className="text-sm text-gray-500 italic">No qualifying quarters found</p>
-                                    )}
-                                  </div>
-                                  
-                                  <div>
-                                    <h4 className="font-medium text-sm text-gray-700 mb-2">Processed Quarters:</h4>
-                                    {submission.processedQuarters?.length > 0 ? (
-                                      <div className="flex flex-wrap gap-2">
-                                        {submission.processedQuarters.map(quarter => (
-                                          <span 
-                                            key={quarter} 
-                                            className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
-                                          >
-                                            {quarter}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <p className="text-sm text-gray-500 italic">No processed quarters found</p>
-                                    )}
-                                  </div>
-                                  
-                                  {submission.mongoData?.originalData?.formData?.qualifyingQuestions && (
-                                    <div>
-                                      <h4 className="font-medium text-sm text-gray-700 mb-2">Qualifying Factors:</h4>
-                                      <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                    <h4>Qualifying Factors:</h4>
+                                    <div className="qualifying-factors">
+                                      <dl>
                                         {Object.entries(submission.mongoData.originalData.formData.qualifyingQuestions).map(([key, value]) => (
                                           <React.Fragment key={key}>
-                                            <dt className="text-sm font-medium text-gray-500">
+                                            <dt>
                                               {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:
                                             </dt>
-                                            <dd className="text-sm text-gray-900">
+                                            <dd>
                                               {Array.isArray(value) 
-                                                ? value.join(', ') 
+                                                ? value.map(v => (
+                                                  <span key={v} className="factor-tag">
+                                                    {v}
+                                                  </span>
+                                                ))
                                                 : (value === 'yes' 
-                                                  ? 'Yes' 
-                                                  : (value === 'no' ? 'No' : value))}
+                                                  ? <span className="boolean-value yes">Yes</span> 
+                                                  : (value === 'no' ? <span className="boolean-value no">No</span> : value))}
                                             </dd>
                                           </React.Fragment>
                                         ))}
                                       </dl>
                                     </div>
-                                  )}
-                                </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </td>
                         </tr>
                       )}
                     </React.Fragment>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </>
       )}
     </div>
