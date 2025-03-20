@@ -48,7 +48,8 @@ async function scrapePPPData(url) {
       console.log('Detected security check page. Attempting to wait for possible CAPTCHA timeout...');
       
       // Wait longer to see if the page resolves automatically (some security checks have timeouts)
-      await page.waitForTimeout(8000);
+      // FIXED: Using setTimeout with a Promise instead of page.waitForTimeout
+      await new Promise(resolve => setTimeout(resolve, 8000));
       
       // Check again if we're still on a security page
       const newTitle = await page.title();
