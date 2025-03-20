@@ -1,94 +1,104 @@
-// puppeteer-scrape.js
+// scrape-ppp.js
 require('dotenv').config();
-const puppeteer = require('puppeteer');
 const express = require('express');
+const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
 const { OpenAI } = require('openai');
 
 // Initialize OpenAI client
-const openAI = new OpenAI({
+const openAI = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
-});
+}) : null;
 
 const router = express.Router();
 
-// Helper function to scrape PPP data using Puppeteer
-async function scrapePPPData(url) {
-  let browser = null;
-  
-  try {
-    // Launch a headless browser (can be made visible for debugging)
-    browser = await puppeteer.launch({
-      headless: 'new', // Use 'false' for debugging
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--disable-gpu'
-      ]
+// Helper function to run the Python SeleniumBase script
+async function scrapePPPDataWithSeleniumBase(url, businessName) {
+  return new Promise((resolve, reject) => {
+    const scriptPath = path.join(__dirname, '../scripts/scrape_ppp.py');
+    
+    // Create a temporary file for output
+    const tempOutputFile = path.join(__dirname, `../temp/ppp_${Date.now()}.json`);
+    
+    // Ensure the temp directory exists
+    if (!fs.existsSync(path.join(__dirname, '../temp'))) {
+      fs.mkdirSync(path.join(__dirname, '../temp'), { recursive: true });
+    }
+    
+    console.log(`Scraping PPP data from ${url} for ${businessName}`);
+    
+    // Spawn the Python process
+    const pythonProcess = spawn('python', [
+      scriptPath,
+      '--url', url,
+      '--business-name', businessName,
+      '--output', tempOutputFile
+    ]);
+    
+    let stdoutData = '';
+    let errorData = '';
+    
+    // Collect stdout
+    pythonProcess.stdout.on('data', (data) => {
+      console.log(`Python stdout: ${data}`);
+      stdoutData += data;
     });
     
-    // Open a new page
-    const page = await browser.newPage();
+    // Collect any error output
+    pythonProcess.stderr.on('data', (data) => {
+      console.error(`Python stderr: ${data}`);
+      errorData += data;
+    });
     
-    // Set a realistic viewport
-    await page.setViewport({ width: 1366, height: 768 });
-    
-    // Set user agent to mimic a real browser
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
-    
-    // Visit the url
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
-    
-    // Check if page contains a CAPTCHA or security check
-    const pageTitle = await page.title();
-    const pageContent = await page.content();
-    
-    if (pageTitle.includes('Security Check') || pageContent.includes('security check')) {
-      console.log('Detected security check page. Attempting to wait for possible CAPTCHA timeout...');
-      
-      // Wait longer to see if the page resolves automatically (some security checks have timeouts)
-      // FIXED: Using setTimeout with a Promise instead of page.waitForTimeout
-      await new Promise(resolve => setTimeout(resolve, 8000));
-      
-      // Check again if we're still on a security page
-      const newTitle = await page.title();
-      if (newTitle.includes('Security Check')) {
-        console.log('Still on security check page after waiting. May require manual intervention.');
-        throw new Error('Security verification required. The website is blocking automated access.');
+    pythonProcess.on('close', (code) => {
+      if (code !== 0) {
+        console.error(`Python script exited with code ${code}`);
+        reject(new Error(`Python script error: ${errorData}`));
+        return;
       }
-    }
-    
-    // Wait for the content to be available
-    await page.waitForSelector('body', { timeout: 10000 });
-    
-    // Extract the page content
-    const html = await page.content();
-    const text = await page.evaluate(() => document.body.innerText);
-    
-    // Close the browser
-    await browser.close();
-    browser = null;
-    
-    return {
-      html: html,
-      text: text,
-      url: url
-    };
-  } catch (error) {
-    console.error('Error during puppeteer scraping:', error);
-    throw new Error(`Failed to scrape data from ${url}: ${error.message}`);
-  } finally {
-    // Ensure browser is closed even if there's an error
-    if (browser) {
-      await browser.close();
-    }
-  }
+      
+      // Read the output file
+      try {
+        if (fs.existsSync(tempOutputFile)) {
+          const outputData = fs.readFileSync(tempOutputFile, 'utf8');
+          const jsonData = JSON.parse(outputData);
+          
+          // Delete the temporary file
+          fs.unlinkSync(tempOutputFile);
+          
+          resolve(jsonData);
+        } else {
+          // If file doesn't exist but process exited successfully,
+          // try to parse stdout as JSON
+          try {
+            const jsonData = JSON.parse(stdoutData);
+            resolve(jsonData);
+          } catch (parseErr) {
+            reject(new Error(`Output file not found and stdout is not valid JSON: ${stdoutData}`));
+          }
+        }
+      } catch (err) {
+        console.error('Error reading output file:', err);
+        reject(err);
+      }
+    });
+  });
 }
 
 // Function to process scraped content with GPT
 async function processWithGPT(scrapedData, businessName) {
-  // Implementation remains the same as original
+  // If OpenAI is not configured or if we already have structured data, return as is
+  if (!openAI || 
+      (scrapedData.businessName && 
+       (scrapedData.firstDraw?.amount || scrapedData.secondDraw?.amount))) {
+    return {
+      ...scrapedData,
+      scrapedAt: new Date(),
+      sourceLink: scrapedData.sourceLink
+    };
+  }
+  
   try {
     const response = await openAI.chat.completions.create({
       model: "gpt-4-turbo",
@@ -131,10 +141,10 @@ async function processWithGPT(scrapedData, businessName) {
         },
         {
           role: "user",
-          content: `I need to extract PPP loan data from this content. The page is from ${scrapedData.url}.
+          content: `I need to extract PPP loan data from this content. The page is from ${scrapedData.sourceLink}.
           
           Here's the relevant content:
-          ${scrapedData.text.substring(0, 9000)}`
+          ${scrapedData.text || scrapedData.html || JSON.stringify(scrapedData)}`
         }
       ],
       temperature: 0.1,
@@ -148,7 +158,7 @@ async function processWithGPT(scrapedData, businessName) {
       const pppData = JSON.parse(jsonText);
       
       pppData.scrapedAt = new Date();
-      pppData.sourceLink = scrapedData.url;
+      pppData.sourceLink = scrapedData.sourceLink;
       
       return pppData;
     } catch (parseError) {
@@ -170,10 +180,15 @@ router.post('/api/scrape-ppp', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
     
-    // 1. Scrape the PPP data from the link
-    const scrapedData = await scrapePPPData(pppLink);
+    // 1. Scrape the PPP data from the link using SeleniumBase
+    const scrapedData = await scrapePPPDataWithSeleniumBase(pppLink, businessName);
     
-    // 2. Process the scraped data with GPT
+    // Check for errors in the scraped data
+    if (scrapedData.error) {
+      throw new Error(`SeleniumBase scraper error: ${scrapedData.error}`);
+    }
+    
+    // 2. Process the scraped data with GPT if needed
     const pppData = await processWithGPT(scrapedData, businessName);
     
     // 3. Update the submission in the database
