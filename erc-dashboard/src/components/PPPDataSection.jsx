@@ -46,12 +46,20 @@ const PPPDataSection = ({ submissionId, businessName, initialPppData, onSave }) 
         firstDraw: {
           amount: formData.firstDrawAmount ? parseFloat(formData.firstDrawAmount) : null,
           date: formData.firstDrawDate || null,
-          forgiveness: formData.firstDrawForgiveness ? parseFloat(formData.firstDrawForgiveness) : null
+          forgiveness: formData.firstDrawForgiveness ? parseFloat(formData.firstDrawForgiveness) : null,
+          // Calculate covered period if there's a date
+          coveredPeriodStart: formData.firstDrawDate || null,
+          coveredPeriodEnd: formData.firstDrawDate ? 
+            new Date(new Date(formData.firstDrawDate).getTime() + (168 * 24 * 60 * 60 * 1000)).toISOString() : null
         },
         secondDraw: {
           amount: formData.secondDrawAmount ? parseFloat(formData.secondDrawAmount) : null,
           date: formData.secondDrawDate || null,
-          forgiveness: formData.secondDrawForgiveness ? parseFloat(formData.secondDrawForgiveness) : null
+          forgiveness: formData.secondDrawForgiveness ? parseFloat(formData.secondDrawForgiveness) : null,
+          // Calculate covered period if there's a date
+          coveredPeriodStart: formData.secondDrawDate || null,
+          coveredPeriodEnd: formData.secondDrawDate ? 
+            new Date(new Date(formData.secondDrawDate).getTime() + (168 * 24 * 60 * 60 * 1000)).toISOString() : null
         },
         lender: formData.lender,
         notes: formData.notes
@@ -144,6 +152,12 @@ const PPPDataSection = ({ submissionId, businessName, initialPppData, onSave }) 
                     <th>First Draw Date:</th>
                     <td>{formatDate(pppData.firstDraw?.date)}</td>
                   </tr>
+                  {pppData.firstDraw?.date && (
+                    <tr>
+                      <th>First Draw Covered Period:</th>
+                      <td>{formatDate(pppData.firstDraw?.date)} - {formatDate(calculateCoveredEndDate(pppData.firstDraw?.date))}</td>
+                    </tr>
+                  )}
                   <tr>
                     <th>First Draw Forgiveness:</th>
                     <td>{formatCurrency(pppData.firstDraw?.forgiveness)}</td>
@@ -156,6 +170,12 @@ const PPPDataSection = ({ submissionId, businessName, initialPppData, onSave }) 
                     <th>Second Draw Date:</th>
                     <td>{formatDate(pppData.secondDraw?.date)}</td>
                   </tr>
+                  {pppData.secondDraw?.date && (
+                    <tr>
+                      <th>Second Draw Covered Period:</th>
+                      <td>{formatDate(pppData.secondDraw?.date)} - {formatDate(calculateCoveredEndDate(pppData.secondDraw?.date))}</td>
+                    </tr>
+                  )}
                   <tr>
                     <th>Second Draw Forgiveness:</th>
                     <td>{formatCurrency(pppData.secondDraw?.forgiveness)}</td>
@@ -392,6 +412,18 @@ const formatDate = (dateString) => {
     month: 'short',
     day: 'numeric'
   });
+};
+
+// Calculate the covered period end date (original date + 168 days)
+const calculateCoveredEndDate = (startDateString) => {
+  if (!startDateString) return null;
+  
+  const startDate = new Date(startDateString);
+  // Add 168 days (24 weeks) to the start date
+  const endDate = new Date(startDate);
+  endDate.setDate(startDate.getDate() + 168);
+  
+  return endDate;
 };
 
 export default PPPDataSection;

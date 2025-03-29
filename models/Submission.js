@@ -46,12 +46,16 @@ const submissionSchema = new mongoose.Schema({
     firstDraw: {
       amount: Number,
       date: Date,
-      forgiveness: Number
+      forgiveness: Number,
+      coveredPeriodStart: Date,
+      coveredPeriodEnd: Date
     },
     secondDraw: {
       amount: Number,
       date: Date,
-      forgiveness: Number
+      forgiveness: Number,
+      coveredPeriodStart: Date,
+      coveredPeriodEnd: Date
     },
     lender: String,
     notes: String
