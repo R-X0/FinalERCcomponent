@@ -6,9 +6,6 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
-// Import PPP scraper router
-const pppScraperRouter = require('./api/scrape-ppp');
-
 // Import Submission model
 const Submission = require('./models/Submission');
 
@@ -20,9 +17,6 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Use the PPP scraper router
-app.use(pppScraperRouter);
 
 // MongoDB connection
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -98,6 +92,40 @@ app.get('/api/submissions', async (req, res) => {
   } catch (error) {
     console.error("Error fetching submissions:", error);
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Endpoint for manual PPP data submission
+app.post('/api/ppp-data', async (req, res) => {
+  try {
+    const { submissionId, pppData } = req.body;
+    
+    if (!submissionId || !pppData) {
+      return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
+    
+    // Update the submission in the database
+    const updatedSubmission = await Submission.findOneAndUpdate(
+      { submissionId: submissionId },
+      { $set: { pppData: pppData } },
+      { new: true }
+    );
+    
+    if (!updatedSubmission) {
+      return res.status(404).json({ success: false, message: 'Submission not found' });
+    }
+    
+    return res.status(200).json({
+      success: true,
+      message: 'PPP data successfully updated',
+      pppData: updatedSubmission.pppData
+    });
+  } catch (error) {
+    console.error('Error in PPP data update endpoint:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'An error occurred while updating the PPP data'
+    });
   }
 });
 
